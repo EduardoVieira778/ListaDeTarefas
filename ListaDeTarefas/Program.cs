@@ -1,10 +1,35 @@
 ﻿using ListaDeTarefas;
+using System.Text.Json;
 
 namespace ListaDeTarefas {
     internal class Program {
         static void Main(string[] args) {
-            var tarefas = new List<Tarefa>();
-            int proximoId = 1;
+            var tarefas = CarregarTarefas();
+            int proximoId = tarefas.Count > 0 ? tarefas.Max(t => t.Id) + 1 : 1;
+
+            void SalvarTarefas(List<Tarefa> lista) {
+                string caminhoArquivo = Path.Combine(AppContext.BaseDirectory, "tarefas.json");
+                string json = JsonSerializer.Serialize(lista, new JsonSerializerOptions {
+                    WriteIndented = true
+                });
+                File.WriteAllText(caminhoArquivo, json);
+            }
+
+            List<Tarefa> CarregarTarefas() {
+                string caminhoArquivo = Path.Combine(AppContext.BaseDirectory, "tarefas.json");
+
+                if (!File.Exists(caminhoArquivo))
+                    return new List<Tarefa>();
+
+                try {
+                    string json = File.ReadAllText(caminhoArquivo);
+                    return JsonSerializer.Deserialize<List<Tarefa>>(json) ?? new List<Tarefa>();
+                }
+                catch {
+                    Console.WriteLine("Não foi possível carregar as tarefas salvas.");
+                    return new List<Tarefa>();
+                }
+            }
 
             while (true) {
                 Console.Clear();
@@ -66,6 +91,7 @@ namespace ListaDeTarefas {
                 }
                 else {
                     tarefas.Add(new Tarefa{ Id = proximoId++, Descricao = descricao.Trim() });
+                    SalvarTarefas(tarefas);
                     Console.WriteLine("Tarefa adicionada!");
                 }
 
@@ -79,6 +105,7 @@ namespace ListaDeTarefas {
                     var tarefa = tarefas.FirstOrDefault(t => t.Id == id);
                     if(tarefa != null) {
                         tarefa.Concluida = true;
+                        SalvarTarefas(tarefas);
                         Console.WriteLine("Tarefa concluída!");
                     }
                     else {
@@ -99,6 +126,7 @@ namespace ListaDeTarefas {
                     var tarefa = tarefas.FirstOrDefault(t => t.Id == id);
                     if(tarefa != null) {
                         tarefas.Remove(tarefa);
+                        SalvarTarefas(tarefas);
                         Console.WriteLine("Tarefa removida!");
                     }
                     else {
